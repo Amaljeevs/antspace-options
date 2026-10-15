@@ -1,0 +1,11 @@
+rootProject.name = 'finquant-platform'
+
+include(
+    'backend:common',
+    'backend:auth-server',
+    'backend:api-gateway',
+    'backend:order-engine',
+    'backend:portfolio-service',
+    'backend:broker-service'
+)
+

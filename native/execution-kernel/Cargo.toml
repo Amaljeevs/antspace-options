@@ -1,0 +1,8 @@
+[package]
+name = "execution-kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+market-primitives = { path = "../market-primitives" }
+

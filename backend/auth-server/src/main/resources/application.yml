@@ -1,0 +1,37 @@
+server:
+  port: 9000
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5434/finquant}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: auth
+#        jdbc:
+#          time_zone: UTC
+  flyway:
+    default-schema: auth
+    schemas: auth
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+finquant:
+  security:
+    issuer: ${JWT_ISSUER:http://localhost:9000}
+    audience: ${JWT_AUDIENCE:finquant-clients}
+    access-token-ttl-minutes: 30
+    refresh-token-ttl-days: 7
+    key-rotation-hours: 24
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+

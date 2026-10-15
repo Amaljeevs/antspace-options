@@ -1,0 +1,22 @@
+server:
+  port: 9020
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/finquant}
+    username: ${SPRING_DATASOURCE_USERNAME:finquant}
+    password: ${SPRING_DATASOURCE_PASSWORD:finquant}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: portfolio
+  flyway:
+    schemas: portfolio
+    default-schema: portfolio
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://auth-server:9000/.well-known/jwks.json}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<infinispan xmlns="urn:infinispan:config:15.0">
+  <cache-container name="finquant">
+    <local-cache name="session-cache"/>
+    <local-cache name="market-cache"/>
+  </cache-container>
+</infinispan>
+

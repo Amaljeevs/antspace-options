@@ -1,0 +1,9 @@
+server:
+  port: 9030
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://auth-server:9000/.well-known/jwks.json}

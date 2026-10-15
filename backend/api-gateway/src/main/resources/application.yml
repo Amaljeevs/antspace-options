@@ -1,0 +1,50 @@
+server:
+  port: 8082
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI:http://auth-server:9000/.well-known/jwks.json}
+  cloud:
+    gateway:
+      routes:
+        - id: auth-server
+          uri: ${AUTH_SERVER_URI:http://auth-server:9000}
+          predicates:
+            - Path=/api/auth/**,/.well-known/jwks.json
+        - id: order-engine
+          uri: ${ORDER_ENGINE_URI:http://order-engine:9010}
+          predicates:
+            - Path=/api/orders/**
+        - id: portfolio-service
+          uri: ${PORTFOLIO_SERVICE_URI:http://portfolio-service:9020}
+          predicates:
+            - Path=/api/portfolio/**
+        - id: broker-service
+          uri: ${BROKER_SERVICE_URI:http://broker-service:9030}
+          predicates:
+            - Path=/api/brokers/**
+        - id: market-data-service
+          uri: ${MARKET_DATA_URI:http://market-data-service:8000}
+          predicates:
+            - Path=/api/market/**
+        - id: strategy-engine
+          uri: ${STRATEGY_URI:http://strategy-engine:8000}
+          predicates:
+            - Path=/api/strategy/**
+        - id: backtesting-engine
+          uri: ${BACKTEST_URI:http://backtesting-engine:8000}
+          predicates:
+            - Path=/api/backtests/**
+        - id: analytics-engine
+          uri: ${ANALYTICS_URI:http://analytics-engine:8000}
+          predicates:
+            - Path=/api/analytics/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

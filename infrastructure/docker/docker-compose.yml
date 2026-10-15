@@ -1,0 +1,160 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-finquant}
+      POSTGRES_USER: ${POSTGRES_USER:-finquant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finquant}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finquant} -d ${POSTGRES_DB:-finquant}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  infinispan:
+    image: infinispan/server:15.0
+    environment:
+      USER: admin
+      PASS: admin
+    ports:
+      - "11222:11222"
+    volumes:
+      - ../infinispan/infinispan.xml:/user-config/infinispan.xml
+
+  auth-server:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE_MODULE: auth-server
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-finquant}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finquant}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-finquant}
+      JWT_ISSUER: http://auth-server:9000
+      JWT_AUDIENCE: finquant-clients
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${AUTH_PORT:-9000}:9000"
+
+  api-gateway:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE_MODULE: api-gateway
+    environment:
+      AUTH_JWKS_URI: http://auth-server:9000/.well-known/jwks.json
+    depends_on:
+      - auth-server
+      - order-engine
+      - portfolio-service
+      - broker-service
+      - market-data-service
+      - strategy-engine
+      - backtesting-engine
+      - analytics-engine
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+
+  order-engine:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE_MODULE: order-engine
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-finquant}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finquant}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-finquant}
+      AUTH_JWKS_URI: http://auth-server:9000/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  portfolio-service:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE_MODULE: portfolio-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-finquant}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-finquant}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-finquant}
+      AUTH_JWKS_URI: http://auth-server:9000/.well-known/jwks.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  broker-service:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      args:
+        SERVICE_MODULE: broker-service
+    environment:
+      AUTH_JWKS_URI: http://auth-server:9000/.well-known/jwks.json
+    depends_on:
+      - auth-server
+
+  market-data-service:
+    build:
+      context: ../..
+      dockerfile: quant/Dockerfile
+      args:
+        SERVICE_PATH: quant/market-data-service
+    environment:
+      MARKET_DATA_DATABASE_URL: postgresql+psycopg://finquant:finquant@postgres:5432/finquant
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${MARKET_DATA_PORT:-8101}:8000"
+
+  strategy-engine:
+    build:
+      context: ../..
+      dockerfile: quant/Dockerfile
+      args:
+        SERVICE_PATH: quant/strategy-engine
+    ports:
+      - "${STRATEGY_PORT:-8102}:8000"
+
+  backtesting-engine:
+    build:
+      context: ../..
+      dockerfile: quant/Dockerfile
+      args:
+        SERVICE_PATH: quant/backtesting-engine
+    ports:
+      - "${BACKTEST_PORT:-8103}:8000"
+
+  analytics-engine:
+    build:
+      context: ../..
+      dockerfile: quant/Dockerfile
+      args:
+        SERVICE_PATH: quant/analytics-engine
+    ports:
+      - "${ANALYTICS_PORT:-8104}:8000"
+
+  ui:
+    build:
+      context: ../..
+      dockerfile: flowx-ui/Dockerfile
+    depends_on:
+      - api-gateway
+      - auth-server
+    ports:
+      - "${UI_PORT:-4200}:80"
+
+volumes:
+  postgres-data:

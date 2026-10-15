@@ -1,0 +1,4 @@
+[workspace]
+members = ["execution-kernel", "market-primitives"]
+resolver = "2"
+
